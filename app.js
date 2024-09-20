@@ -138,84 +138,77 @@ function initDetailViewControls(seriesIndex) {
   const dragHandle = detailView.querySelector('.drag-handle')
   const increaseBtn = detailView.querySelector('.increase-height')
   const decreaseBtn = detailView.querySelector('.decrease-height')
+  const detailCanvas = detailView.querySelector('.detailCanvas')
 
-  let startY, startHeight
+  let startY, startHeight, startX, startWidth
 
   resizeHandle.addEventListener('mousedown', initResize)
 
   function initResize(e) {
+    e.preventDefault()
     startY = e.clientY
-    startHeight = parseInt(
-      document.defaultView.getComputedStyle(detailView).height,
-      10
-    )
-    document.documentElement.addEventListener('mousemove', resize)
-    document.documentElement.addEventListener('mouseup', stopResize)
+    startX = e.clientX
+    startHeight = detailCanvas.offsetHeight
+    startWidth = detailCanvas.offsetWidth
+    document.addEventListener('mousemove', resize)
+    document.addEventListener('mouseup', stopResize)
   }
 
   function resize(e) {
     const newHeight = startHeight + e.clientY - startY
-    detailView.style.height = newHeight + 'px'
+    const newWidth = startWidth + e.clientX - startX
+    detailCanvas.style.height = `${newHeight}px`
+    detailCanvas.style.width = `${newWidth}px`
     updateDetailView(seriesIndex)
   }
 
   function stopResize() {
-    document.documentElement.removeEventListener('mousemove', resize)
-    document.documentElement.removeEventListener('mouseup', stopResize)
+    document.removeEventListener('mousemove', resize)
+    document.removeEventListener('mouseup', stopResize)
   }
 
-  dragHandle.addEventListener('mousedown', initDrag)
+  increaseBtn.addEventListener('click', () => changeSize(20, 20))
+  decreaseBtn.addEventListener('click', () => changeSize(-20, -20))
 
-  function initDrag(e) {
-    e.preventDefault()
-    document.documentElement.addEventListener('mousemove', drag)
-    document.documentElement.addEventListener('mouseup', stopDrag)
-  }
-
-  function drag(e) {
-    const detailContainer = document.getElementById('detailContainer')
-    const draggingElement = detailView
-    const draggingRect = draggingElement.getBoundingClientRect()
-    const containerRect = detailContainer.getBoundingClientRect()
-
-    const mouseY = e.clientY - containerRect.top
-    const elementCenter = draggingRect.height / 2
-
-    let newIndex = 0
-    const detailViews = Array.from(detailContainer.children)
-
-    for (let i = 0; i < detailViews.length; i++) {
-      const viewRect = detailViews[i].getBoundingClientRect()
-      const viewCenter = viewRect.top - containerRect.top + viewRect.height / 2
-
-      if (mouseY > viewCenter) {
-        newIndex = i + 1
-      } else {
-        break
-      }
-    }
-
-    if (newIndex !== detailViews.indexOf(draggingElement)) {
-      detailContainer.insertBefore(draggingElement, detailViews[newIndex])
-    }
-  }
-
-  function stopDrag() {
-    document.documentElement.removeEventListener('mousemove', drag)
-    document.documentElement.removeEventListener('mouseup', stopDrag)
-  }
-
-  increaseBtn.addEventListener('click', () => changeHeight(20))
-  decreaseBtn.addEventListener('click', () => changeHeight(-20))
-
-  function changeHeight(delta) {
-    const currentHeight = parseInt(
-      document.defaultView.getComputedStyle(detailView).height,
-      10
-    )
-    detailView.style.height = currentHeight + delta + 'px'
+  function changeSize(deltaWidth, deltaHeight) {
+    const currentWidth = detailCanvas.offsetWidth
+    const currentHeight = detailCanvas.offsetHeight
+    detailCanvas.style.width = `${currentWidth + deltaWidth}px`
+    detailCanvas.style.height = `${currentHeight + deltaHeight}px`
     updateDetailView(seriesIndex)
   }
+
+  // Add mouse wheel zoom functionality
+  detailCanvas.addEventListener('wheel', (e) => {
+    e.preventDefault()
+    const delta = e.deltaY > 0 ? -10 : 10
+    changeSize(delta, delta)
+  })
+
+  // Add image dragging functionality
+  let isDragging = false
+  let lastX, lastY
+
+  detailCanvas.addEventListener('mousedown', (e) => {
+    isDragging = true
+    lastX = e.clientX
+    lastY = e.clientY
+  })
+
+  document.addEventListener('mousemove', (e) => {
+    if (isDragging) {
+      const deltaX = e.clientX - lastX
+      const deltaY = e.clientY - lastY
+      const img = detailCanvas.querySelector('img')
+      img.style.transform = `translate(${deltaX}px, ${deltaY}px)`
+      lastX = e.clientX
+      lastY = e.clientY
+    }
+  })
+
+  document.addEventListener('mouseup', () => {
+    isDragging = false
+  })
 }
 
 function initDragAndDrop() {
@@ -231,6 +224,7 @@ function initDragAndDrop() {
     },
   })
 }
+
 moveButtons.forEach((btn) => {
   btn.addEventListener('click', () => {
     const direction = btn.textContent
