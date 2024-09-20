@@ -53,6 +53,7 @@ function createImageSeries() {
   initSeriesListeners(seriesId)
   initCropper(seriesCount)
   initDetailViewControls(seriesCount)
+  initDragAndDrop()
 }
 
 function initSeriesListeners(seriesId) {
@@ -217,6 +218,19 @@ function initDetailViewControls(seriesIndex) {
   }
 }
 
+function initDragAndDrop() {
+  new Sortable(detailContainer, {
+    animation: 150,
+    handle: '.drag-handle',
+    onEnd: function (evt) {
+      const detailViews = Array.from(detailContainer.children)
+      croppers = detailViews.map((view) => {
+        const seriesIndex = parseInt(view.dataset.series)
+        return croppers[seriesIndex - 1]
+      })
+    },
+  })
+}
 moveButtons.forEach((btn) => {
   btn.addEventListener('click', () => {
     const direction = btn.textContent
